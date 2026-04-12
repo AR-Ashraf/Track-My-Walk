@@ -9,8 +9,8 @@ enum SwiftDataContainer {
     /// Shared model container for the entire app
     static let shared: ModelContainer = {
         let schema = Schema([
-            // Add your SwiftData models here
-            ExampleItem.self
+            ExampleItem.self,
+            WalkModel.self
         ])
 
         let configuration: ModelConfiguration
@@ -51,7 +51,8 @@ enum SwiftDataContainer {
     @MainActor
     static var preview: ModelContainer = {
         let schema = Schema([
-            ExampleItem.self
+            ExampleItem.self,
+            WalkModel.self
         ])
 
         let configuration = ModelConfiguration(
@@ -86,7 +87,8 @@ enum SwiftDataContainer {
     /// Creates a fresh in-memory container for unit tests
     static func createTestContainer() -> ModelContainer {
         let schema = Schema([
-            ExampleItem.self
+            ExampleItem.self,
+            WalkModel.self
         ])
 
         let configuration = ModelConfiguration(

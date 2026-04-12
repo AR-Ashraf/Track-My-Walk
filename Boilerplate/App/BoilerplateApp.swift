@@ -51,10 +51,8 @@ struct RootView: View {
 
         NavigationStack(path: $router.path) {
             Group {
-                if authService.isAuthenticated {
-                    HomeView()
-                } else if UserDefaultsWrapper.hasCompletedOnboarding {
-                    LoginView()
+                if UserDefaultsWrapper.hasCompletedOnboarding {
+                    ContentView()
                 } else {
                     OnboardingView()
                 }
@@ -131,11 +129,11 @@ struct OnboardingView: View {
                 .font(.system(size: 80))
                 .foregroundStyle(.accent)
 
-            Text("Welcome to Boilerplate")
+            Text("Track My Walk")
                 .font(.largeTitle)
                 .fontWeight(.bold)
 
-            Text("Your starting point for building great iOS apps")
+            Text("Record routes, distance, and pace — stored only on your device.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Track My Walk uses your location to draw your route and measure distance while you walk.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Track My Walk can continue recording your walk when the screen is off if you allow always-on location.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+</dict>
+</plist>
