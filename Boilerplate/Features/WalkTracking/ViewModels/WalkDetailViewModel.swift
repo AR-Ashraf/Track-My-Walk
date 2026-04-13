@@ -33,7 +33,7 @@ final class WalkDetailViewModel {
 
     func shareWalk() -> String {
         """
-        Walk — \(walk.date.formatted(date: .abbreviated, time: .shortened))
+        \(walk.name) — \(walk.date.formatted(date: .abbreviated, time: .shortened))
         Distance: \(walk.distanceInKm.formatDistance())
         Duration: \(walk.duration.formattedTime)
         Avg pace: \(walk.averagePace.formatPace())

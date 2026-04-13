@@ -123,6 +123,7 @@ final class TrackingViewModel {
         let walk = Walk(
             id: UUID(),
             date: Date(),
+            name: "Walk",
             duration: duration,
             distanceInKm: distanceKm,
             caloriesBurned: calories,

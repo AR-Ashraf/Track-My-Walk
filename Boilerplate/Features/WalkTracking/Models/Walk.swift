@@ -4,6 +4,7 @@ import SwiftData
 struct Walk: Identifiable, Hashable, Sendable {
     let id: UUID
     let date: Date
+    let name: String
     let duration: TimeInterval
     let distanceInKm: Double
     let caloriesBurned: Double
@@ -18,6 +19,7 @@ extension WalkModel {
         Walk(
             id: id,
             date: date,
+            name: name,
             duration: duration,
             distanceInKm: distanceInKm,
             caloriesBurned: caloriesBurned,

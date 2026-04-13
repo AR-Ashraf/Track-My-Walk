@@ -46,10 +46,12 @@ struct DashboardView: View {
                     HistoryView(viewModel: historyViewModel)
                 } label: {
                     Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 20, weight: .semibold))
                         .padding(12)
                         .background(.ultraThinMaterial, in: Circle())
                 }
                 .padding(.trailing, 16)
+                .padding(.top, 32)
                 .safeAreaPadding(.top)
             }
         }

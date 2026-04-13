@@ -54,7 +54,7 @@ struct WalkDetailView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Walk details")
+        .navigationTitle(viewModel.walk.name)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showShareSheet) {
             ActivityShareSheet(items: [viewModel.shareWalk()])

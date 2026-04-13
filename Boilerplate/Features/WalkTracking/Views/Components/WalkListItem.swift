@@ -13,9 +13,10 @@ struct WalkListItem: View {
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(walk.date, format: .dateTime.month(.abbreviated).day().year())
+                Text(walk.name)
                     .font(.subheadline.weight(.semibold))
-                Text(walk.date, style: .time)
+                    .lineLimit(1)
+                Text(walk.date, format: .dateTime.month(.abbreviated).day().year())
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

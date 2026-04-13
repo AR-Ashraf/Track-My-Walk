@@ -8,13 +8,14 @@ struct WorkoutBottomSheet: View {
     @State private var isExpanded: Bool = false
     @GestureState private var dragOffset: CGFloat = 0
 
-    private let collapsedHeight: CGFloat = 280
+    private let collapsedHeight: CGFloat = 240
+    private let bottomGap: CGFloat = 28
 
     var body: some View {
         GeometryReader { geo in
             let expandedHeight = geo.size.height
             let targetHeight = isExpanded ? expandedHeight : collapsedHeight
-            let sheetHeight = max(collapsedHeight, targetHeight - dragOffset)
+            let sheetHeight = clampedSheetHeight(targetHeight: targetHeight, expandedHeight: expandedHeight)
 
             VStack(spacing: 0) {
                 Spacer()
@@ -32,10 +33,8 @@ struct WorkoutBottomSheet: View {
 
                     if isExpanded {
                         expandedContent
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
                     } else {
                         collapsedContent
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
                 .frame(height: sheetHeight, alignment: .top)
@@ -63,6 +62,12 @@ struct WorkoutBottomSheet: View {
         }
     }
 
+    private func clampedSheetHeight(targetHeight: CGFloat, expandedHeight: CGFloat) -> CGFloat {
+        // Dragging up yields negative translation, so invert it for height math.
+        let proposed = targetHeight + (-dragOffset)
+        return min(max(collapsedHeight, proposed), expandedHeight)
+    }
+
     // MARK: - Handle
 
     private var handle: some View {
@@ -79,46 +84,65 @@ struct WorkoutBottomSheet: View {
                 Image(systemName: "flame.fill")
                     .foregroundStyle(.orange)
                 Text(String(format: "%.0f cal", liveCalories))
-                    .font(.title2.bold())
+                    .font(.title.bold())
             }
+
+            Spacer(minLength: 0)
 
             actionButtons
         }
         .padding(.horizontal, 20)
         .padding(.top, 16)
+        .padding(.bottom, bottomGap)
     }
 
     // MARK: - Expanded Content
 
     private var expandedContent: some View {
-        VStack(spacing: 24) {
-            statsGrid
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                Spacer(minLength: 16)
 
-            actionButtons
+                caloriesHeader
+                    .padding(.top, 12)
+
+                statsGrid
+                    .padding(.top, 28)
+
+                Spacer(minLength: 16)
+
+                actionButtons
+                    .padding(.bottom, bottomGap)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
+    }
+
+    private var caloriesHeader: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "flame.fill")
+                .foregroundStyle(.orange)
+                .font(.system(size: 26, weight: .semibold))
+            Text(String(format: "%.0f cal", liveCalories))
+                .font(.system(size: 44, weight: .bold, design: .rounded))
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var statsGrid: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 44) {
             HStack {
                 statCell(label: "Duration", value: formattedElapsed)
                 Divider().frame(height: 40)
-                statCell(label: "Distance", value: String(format: "%.2f km", liveDistanceKm))
+                statCell(label: "Distance (km)", value: String(format: "%.2f", liveDistanceKm))
             }
 
             HStack {
-                statCell(label: "Pace", value: String(format: "%.1f km/h", livePaceKmh))
+                statCell(label: "Pace (km/h)", value: String(format: "%.1f", livePaceKmh))
                 Divider().frame(height: 40)
-                statCell(label: "Avg Pace", value: String(format: "%.1f km/h", livePaceKmh))
-            }
-
-            HStack(spacing: 8) {
-                Image(systemName: "flame.fill")
-                    .foregroundStyle(.orange)
-                Text(String(format: "%.0f cal", liveCalories))
-                    .font(.title3.bold())
+                statCell(label: "Avg Pace (km/h)", value: String(format: "%.1f", livePaceKmh))
             }
         }
     }
@@ -126,10 +150,10 @@ struct WorkoutBottomSheet: View {
     private func statCell(label: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.title3.bold())
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .monospacedDigit()
             Text(label)
-                .font(.caption)
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
