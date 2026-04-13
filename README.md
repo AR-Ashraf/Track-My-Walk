@@ -1,552 +1,141 @@
-# iOS Boilerplate
+# Track My Walk (iOS)
 
-A production-ready iOS boilerplate built with modern SwiftUI patterns, designed to help you ship iOS apps faster while following industry best practices.
+**Track My Walk** is an offline-first walking tracker for iOS (similar to “Map My Walk”, without social features). It records a walking route on a map, shows live stats (distance / time / pace / calories), and saves walks locally for later viewing.
 
-## Why This Boilerplate?
+## What the app does
 
-Starting a new iOS project means making dozens of architectural decisions before writing any feature code. This boilerplate makes those decisions for you, based on:
+- **Track a walk in real time**
+  - Live map with a blue route polyline
+  - Live stats: **distance**, **duration**, **pace**, **calories**
+- **Save the walk locally**
+  - Name your walk on the Save screen
+  - Stored on-device using **SwiftData** (no backend)
+- **History**
+  - List of past walks (shows the walk **name** as the primary label)
+  - Walk details view with a **static route preview** (fits the polyline; does not follow your current location)
 
-- **Apple's guidance** for SwiftUI and Swift Concurrency
-- **Community best practices** from top iOS developers and companies
-- **Real-world experience** from production apps
-- **2024-2025 iOS ecosystem** standards (iOS 17+, Swift 5.9+)
+## Tech stack
 
-Every pattern in this boilerplate exists for a reason. This documentation explains not just *what* to do, but *why*.
+- **SwiftUI** (iOS 17+)
+- **MVVM** with the iOS 17 **`@Observable`** macro
+- **CoreLocation** for GPS tracking
+- **SwiftData** for local persistence
+- **Google Maps SDK for iOS** (preferred) with a MapKit fallback if the SDK isn’t linked
 
-## Features
+## Architecture (high level)
 
-| Feature | Implementation | Why This Approach |
-|---------|---------------|-------------------|
-| Architecture | MVVM + `@Observable` | Simplest reactive pattern that scales well |
-| Networking | Protocol-based async/await | Testable, modern, no callback hell |
-| Persistence | SwiftData + Keychain + UserDefaults | Right tool for each data type |
-| Navigation | Type-safe Router | Compile-time safety, deep linking ready |
-| UI Components | Composable SwiftUI views | Reusable, consistent, maintainable |
-| Testing | Swift Testing + mocks | Apple's modern testing framework |
-| Code Quality | SwiftLint + SwiftFormat | Consistent style, catch bugs early |
+- **Views**: Pure SwiftUI UI composition (screens + reusable components)
+- **ViewModels**: State + business logic, declared with `@Observable`
+- **Core services**:
+  - `LocationManager` (CoreLocation delegate + route accumulation + distance computation)
+  - SwiftData container setup for persistence
+- **Data**
+  - `WalkModel` is the SwiftData `@Model` persisted to disk
+  - `Walk` is a UI-layer model used by the screens and view models
 
-## Requirements
+## Data model / storage
 
-- **iOS 17.0+** - Required for `@Observable`, modern SwiftData, and NavigationStack improvements
-- **Xcode 15.0+** - Required for Swift 5.9 and iOS 17 SDK
-- **Swift 5.9+** - Required for `@Observable` macro
+Walks are stored locally in SwiftData:
 
-> **Why iOS 17?** The `@Observable` macro (iOS 17+) dramatically simplifies state management compared to `ObservableObject` + `@Published`. If you need iOS 16 support, you can convert ViewModels to use `ObservableObject`, but we recommend targeting iOS 17+ for new projects.
+- `WalkModel`
+  - `id`, `date`, `name`
+  - `duration`, `distanceInKm`, `averagePace`, `maxSpeed`, `caloriesBurned`
+  - `routePointsData` (route points stored as JSON-encoded `Data`)
 
-## Quick Start
+No network calls are required for the tracking feature set.
+
+## Project layout (relevant parts)
+
+```
+Boilerplate/
+├── App/                          # App entry + onboarding
+├── Core/
+│   ├── Location/                 # CoreLocation manager + permissions
+│   └── Persistence/              # SwiftData container
+├── Features/
+│   └── WalkTracking/
+│       ├── Models/               # Walk (UI model), WalkPoint, WalkStatistics
+│       ├── ViewModels/           # Tracking / History / WalkDetail
+│       └── Views/                # Dashboard, Save, History, Detail, components
+└── Assets.xcassets/              # App icon + in-app logo
+```
+
+## Getting started (step-by-step)
+
+### Requirements
+
+- macOS with **Xcode 15+** (recommended: Xcode 16 if you have it)
+- iOS 17+ simulator or an iPhone running iOS 17+
+- A **Google Maps API key** (recommended) if you want Google Maps rendering
+
+### 1) Clone the repo
 
 ```bash
-# Clone the repository
-git clone https://github.com/10x-oss/ios-boilerplate.git
-cd ios-boilerplate
+git clone https://github.com/AR-Ashraf/Track-My-Walk.git
+cd "Track My Walk"
+```
 
-# Open in Xcode
+### 2) Open the project in Xcode
+
+```bash
 open Boilerplate.xcodeproj
 ```
 
-Then:
-1. Update bundle identifier in project settings
-2. Configure API URLs in `AppEnvironment.swift`
-3. Build and run (`⌘R`)
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [README.md](README.md) | This file - overview and quick start |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Deep dive into architectural decisions |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing |
-| [CHANGELOG.md](CHANGELOG.md) | Version history |
-| [docs/XCODE-CLOUD-WORKFLOW.md](docs/XCODE-CLOUD-WORKFLOW.md) | CI/versioning runbook for Xcode Cloud |
-
----
-
-## Project Structure
-
-```
-ios-boilerplate/
-├── Boilerplate/
-│   ├── App/                    # App entry point and configuration
-│   ├── Core/                   # Infrastructure (networking, persistence, etc.)
-│   ├── Shared/                 # Reusable code (components, extensions, etc.)
-│   ├── Features/               # Feature modules (auth, settings, etc.)
-│   └── Resources/              # Assets, localization, Info.plist
-├── BoilerplateTests/           # Unit tests
-└── BoilerplateUITests/         # UI tests
-```
-
-### Why This Structure?
-
-**Feature-based organization** (vs. layer-based like `Models/`, `Views/`, `ViewModels/`):
-
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Feature-based** (our choice) | Related code together, easy to find, scales well | Slightly more folders |
-| Layer-based | Familiar from MVC | Files scattered, hard to navigate at scale |
-
-With feature-based organization, everything related to "Auth" is in `Features/Auth/`. When you're working on a feature, you rarely need to jump between distant folders.
-
-**Shared vs. Core distinction**:
-- `Core/` = Infrastructure that features depend on (networking, persistence, navigation)
-- `Shared/` = Reusable UI code (components, extensions, styles)
-
-This separation makes dependencies clear and prevents circular imports.
-
----
-
-## Architecture Deep Dive
-
-### MVVM with @Observable
-
-**Why MVVM?**
-- Clear separation: Views display, ViewModels process, Models store
-- Testable: ViewModels can be tested without UI
-- SwiftUI-native: Works naturally with SwiftUI's data flow
-
-**Why @Observable over ObservableObject?**
-```swift
-// OLD: ObservableObject (iOS 13+)
-class OldViewModel: ObservableObject {
-    @Published var items: [Item] = []     // Must mark each property
-    @Published var isLoading = false      // Easy to forget @Published
-    @Published var error: Error?          // Boilerplate heavy
-}
-
-// NEW: @Observable (iOS 17+)
-@Observable
-class NewViewModel {
-    var items: [Item] = []                // Just works
-    var isLoading = false                 // No annotations needed
-    var error: Error?                     // Cleaner code
-}
-```
-
-Benefits of `@Observable`:
-- **Less boilerplate** - No `@Published` on every property
-- **Automatic tracking** - SwiftUI only updates when accessed properties change
-- **Better performance** - More granular updates than `ObservableObject`
-
-**ViewModel Pattern**:
-```swift
-@Observable
-final class ExampleListViewModel {
-    // MARK: - State (private(set) prevents external mutation)
-    private(set) var items: [ExampleItem] = []
-    private(set) var loadingState: LoadingState<[ExampleItem]> = .idle
-
-    // MARK: - Dependencies (injected for testability)
-    private let apiService: ExampleAPIServiceProtocol
-
-    // MARK: - Public Methods (the only way to change state)
-    func loadItems() async { ... }
-    func deleteItem(_ item: ExampleItem) async throws { ... }
-}
-```
-
-**Why this pattern?**
-- `private(set)` ensures state can only change through methods (predictable)
-- Protocol-typed dependencies enable mock injection for testing
-- `async` methods work naturally with SwiftUI's `.task` modifier
-
-### Dependency Injection via Environment
-
-**Why Environment over singletons or manual injection?**
-
-```swift
-// SINGLETON (avoid)
-class APIClient {
-    static let shared = APIClient()  // Hard to test, hidden dependency
-}
-
-// MANUAL INJECTION (verbose)
-struct MyView: View {
-    let apiClient: APIClient  // Must pass through every view
-}
-
-// ENVIRONMENT (our choice)
-struct MyView: View {
-    @Environment(APIClient.self) private var apiClient  // Available everywhere
-}
-```
-
-Benefits of Environment:
-- **Testable**: Inject mocks in previews and tests
-- **Clean**: No prop drilling through view hierarchy
-- **SwiftUI-native**: Built into the framework
-
-**Setup in App entry point**:
-```swift
-@main
-struct BoilerplateApp: App {
-    var body: some Scene {
-        WindowGroup {
-            RootView()
-                .environment(APIClient())        // Available to all views
-                .environment(AuthService())
-                .environment(Router.shared)
-        }
-        .modelContainer(SwiftDataContainer.shared)  // SwiftData
-    }
-}
-```
-
-### Type-Safe Navigation
-
-**Why a Router pattern?**
-
-```swift
-// WITHOUT Router (fragile)
-NavigationLink("Details", value: "item_123")  // String = runtime errors
-
-// WITH Router (safe)
-router.navigate(to: .exampleDetail(id: "item_123"))  // Compile-time checked
-```
-
-**Route enum provides**:
-- **Compile-time safety**: Typos are caught by the compiler
-- **Refactoring support**: Rename routes and Xcode updates all usages
-- **Deep linking ready**: Routes map directly to URL paths
-- **Centralized navigation**: All possible destinations in one place
-
-```swift
-enum Route: Hashable {
-    case home
-    case exampleList
-    case exampleDetail(id: String)  // Associated values for parameters
-    case settings
-}
-```
-
-**Router implementation**:
-```swift
-@Observable
-final class Router {
-    var path = NavigationPath()
-    var presentedSheet: Sheet?
-
-    func navigate(to route: Route) {
-        path.append(route)
-    }
-
-    func pop() {
-        path.removeLast()
-    }
-
-    func popToRoot() {
-        path.removeLast(path.count)
-    }
-}
-```
-
----
-
-## Networking
-
-### Protocol-Based API Client
-
-**Why protocols?**
-
-```swift
-// Protocol defines the contract
-protocol APIClientProtocol: Sendable {
-    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T
-}
-
-// Real implementation
-final class APIClient: APIClientProtocol { ... }
-
-// Mock for testing
-final class MockAPIClient: APIClientProtocol { ... }
-```
-
-Benefits:
-- **Testable**: Inject `MockAPIClient` in tests
-- **Flexible**: Swap implementations without changing calling code
-- **Documented**: Protocol is the contract/documentation
-
-### Type-Safe Endpoints
-
-**Why an enum over strings?**
-
-```swift
-// STRINGS (error-prone)
-let url = baseURL + "/items/\(id)"  // Typo = runtime crash
-
-// ENUM (safe)
-enum APIEndpoint {
-    case getItem(id: String)
-
-    var path: String {
-        switch self {
-        case .getItem(let id): return "/items/\(id)"
-        }
-    }
-}
-```
-
-Benefits:
-- **Discoverable**: Autocomplete shows all endpoints
-- **Type-safe parameters**: Can't pass wrong types
-- **Centralized**: All API surface in one file
-- **Self-documenting**: Endpoint names describe what they do
-
-### Typed Errors
-
-**Why custom error types?**
-
-```swift
-enum APIError: Error, LocalizedError {
-    case networkUnavailable
-    case unauthorized
-    case serverError(statusCode: Int, message: String?)
-
-    var errorDescription: String? { ... }  // User-friendly messages
-    var isRecoverable: Bool { ... }        // Can user retry?
-    var suggestedAction: String? { ... }   // What should user do?
-}
-```
-
-Benefits:
-- **Actionable UI**: Show appropriate error states based on error type
-- **Retry logic**: Only retry recoverable errors
-- **Logging**: Log detailed info for debugging
-- **Localization**: Centralized error messages
-
----
-
-## Persistence
-
-### Three-Tier Strategy
-
-| Data Type | Storage | Why |
-|-----------|---------|-----|
-| Structured data (models) | SwiftData | Apple's modern ORM, CloudKit sync |
-| Sensitive data (tokens) | Keychain | Encrypted, survives app reinstall |
-| Preferences (settings) | UserDefaults | Simple key-value, fast |
-
-**Why not put everything in one place?**
-- Tokens in UserDefaults = security vulnerability
-- Preferences in SwiftData = overkill, slower
-- Large data in Keychain = not designed for it
-
-### SwiftData Setup
-
-```swift
-@Model
-final class ExampleItem {
-    @Attribute(.unique) var id: String  // Unique constraint
-    var title: String
-    var createdAt: Date
-}
-```
-
-**Why SwiftData over Core Data?**
-- **Swift-native**: No NSManagedObject, uses Swift types
-- **Less boilerplate**: No .xcdatamodeld file
-- **Better SwiftUI integration**: Works with `@Query`
-- **CloudKit built-in**: Just set `cloudKitDatabase: .automatic`
-
-### Type-Safe UserDefaults
-
-```swift
-// UNSAFE
-UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-let value = UserDefaults.standard.bool(forKey: "hasCompletedOnboaring")  // Typo!
-
-// SAFE (our approach)
-@UserDefault(key: "hasCompletedOnboarding", defaultValue: false)
-static var hasCompletedOnboarding: Bool
-
-UserDefaultsWrapper.hasCompletedOnboarding = true  // Type-checked, autocomplete
-```
-
----
-
-## UI Components
-
-### Component Design Philosophy
-
-**Why reusable components?**
-
-| Without Components | With Components |
-|-------------------|-----------------|
-| Copy-paste button styles | `PrimaryButton(title: "Save")` |
-| Inconsistent spacing | `UIConstants.Spacing.md` |
-| Different loading states | `LoadingView(message: "...")` |
-
-Benefits:
-- **Consistency**: Same look everywhere
-- **Maintainability**: Change once, update everywhere
-- **Speed**: Don't reinvent the wheel
-
-### Loading State Pattern
-
-```swift
-enum LoadingState<T: Equatable>: Equatable {
-    case idle
-    case loading
-    case loaded(T)
-    case error(AppError)
-}
-```
-
-**Why a generic enum?**
-
-```swift
-// In ViewModel
-@Observable
-class MyViewModel {
-    var loadingState: LoadingState<[Item]> = .idle
-
-    func load() async {
-        loadingState = .loading
-        do {
-            let items = try await api.getItems()
-            loadingState = .loaded(items)
-        } catch {
-            loadingState = .error(.from(error))
-        }
-    }
-}
-
-// In View
-switch viewModel.loadingState {
-case .idle, .loading:
-    LoadingView()
-case .loaded(let items):
-    ItemList(items: items)
-case .error(let error):
-    ErrorView(error: error, onRetry: viewModel.load)
-}
-```
-
-Benefits:
-- **Exhaustive handling**: Compiler ensures all states handled
-- **Single source of truth**: Can't be loading AND have an error
-- **Reusable**: Works for any data type
-
----
-
-## Testing
-
-### Why Swift Testing over XCTest?
-
-```swift
-// XCTEST (old)
-func testLoadItems() async throws {
-    XCTAssertEqual(viewModel.items.count, 0)
-    await viewModel.load()
-    XCTAssertEqual(viewModel.items.count, 3)
-}
-
-// SWIFT TESTING (new, our choice)
-@Test("ViewModel loads items successfully")
-func testLoadItems() async throws {
-    #expect(viewModel.items.count == 0)
-    await viewModel.load()
-    #expect(viewModel.items.count == 3)
-}
-```
-
-Benefits:
-- **Better output**: `#expect` shows actual vs expected
-- **Parameterized tests**: Test multiple inputs easily
-- **Tags**: Organize tests by category
-- **Modern syntax**: Cleaner, more readable
-
-### Mock Strategy
-
-```swift
-// Protocol enables mocking
-protocol APIClientProtocol {
-    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T
-}
-
-// Mock captures calls and returns controlled responses
-final class MockAPIClient: APIClientProtocol {
-    var mockResponse: Any?
-    var mockError: Error?
-    var requestedEndpoints: [APIEndpoint] = []
-
-    func request<T: Decodable>(_ endpoint: APIEndpoint) async throws -> T {
-        requestedEndpoints.append(endpoint)  // Track what was called
-        if let error = mockError { throw error }
-        return mockResponse as! T
-    }
-}
-```
-
-**Why this approach?**
-- **Control responses**: Test success and error paths
-- **Verify calls**: Assert correct endpoints were called
-- **No network**: Tests are fast and reliable
-
----
-
-## Code Quality
-
-### SwiftLint Rules
-
-Key rules we enable and why:
-
-| Rule | Why |
-|------|-----|
-| `force_unwrapping` | Crashes are bugs; handle optionals properly |
-| `implicit_return` | Cleaner single-expression functions |
-| `sorted_imports` | Consistent, easy to find imports |
-| `vertical_whitespace` | Consistent spacing |
-
-### SwiftFormat Configuration
-
-Key settings:
-- `--indent 4` - Apple's standard
-- `--wraparguments before-first` - Readable multi-line calls
-- `--self remove` - Less noise (Swift doesn't require `self.`)
-
----
-
-## Configuration
-
-### Environment-Based Settings
-
-```swift
-enum AppEnvironment {
-    case development, staging, production
-
-    static var current: AppEnvironment {
-        #if DEBUG
-        return .development
-        #else
-        return .production  // Safe default
-        #endif
-    }
-
-    var baseURL: URL {
-        switch self {
-        case .development: return URL(string: "https://api-dev.example.com")!
-        case .staging: return URL(string: "https://api-staging.example.com")!
-        case .production: return URL(string: "https://api.example.com")!
-        }
-    }
-}
-```
-
-**Why this pattern?**
-- **No runtime strings**: Can't misconfigure
-- **Safe defaults**: Production if unsure
-- **All config in one place**: Easy to audit
-
----
-
-## Getting Help
-
-- **Issues**: [GitHub Issues](https://github.com/10x-oss/ios-boilerplate/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/10x-oss/ios-boilerplate/discussions)
+### 3) Configure signing (for running on your iPhone)
+
+In Xcode:
+
+- Select the project (blue icon) → select the **`Boilerplate`** target
+- **Signing & Capabilities**
+  - Check **Automatically manage signing**
+  - Choose your **Team**
+  - Set a unique **Bundle Identifier** (e.g. `com.yourname.trackmywalk`)
+
+### 4) Add Google Maps SDK (only if it isn’t already linked)
+
+If the app is showing Apple Maps and you want Google Maps:
+
+- Xcode → **File → Add Package Dependencies**
+- Add the Google Maps package used by this repo (already referenced by the project)
+- Ensure the app target links **GoogleMaps** in “Frameworks, Libraries, and Embedded Content”
+
+### 5) Set your Google Maps API key
+
+This app reads the key from `Boilerplate/Resources/Info.plist` under `GMSApiKey`.
+
+Steps:
+- Create an API key in Google Cloud Console (enable **Maps SDK for iOS**)
+- In Xcode, open `Boilerplate/Resources/Info.plist`
+- Set:
+  - `GMSApiKey` = `YOUR_API_KEY_HERE`
+
+> Tip: If you commit this repo publicly, do **not** commit real API keys.
+
+### 6) Run on Simulator
+
+- Select a simulator device (e.g. iPhone 15/16)
+- Press **⌘R**
+- To simulate movement: Simulator → **Features → Location →** choose a preset route (or create a custom GPX)
+
+### 7) Run on your iPhone
+
+- Plug in your iPhone via USB (or enable Wireless Debugging)
+- Select your iPhone in the Xcode device picker
+- Press **⌘R**
+- On the device, if prompted: Settings → Privacy & Security → Location Services → allow location access
+
+## App icon & logo
+
+- **App icon (home screen)**: `Boilerplate/Assets.xcassets/AppIcon.appiconset/trackmywalklogo.png`
+- **In-app logo (Onboarding)**: `Boilerplate/Assets.xcassets/AppLogo.imageset/trackmywalklogo.png`
+
+If the icon doesn’t update on a device immediately, delete the app from the iPhone and reinstall (iOS sometimes caches icons).
+
+## Notes / common troubleshooting
+
+- **Location updates crash on device**: ensure the project has the **Location updates** background capability if you want background tracking.
+- **Map in walk details moves**: the details screen uses a route preview mode (static, fits route). The dashboard is live by design.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-Built with care by [10x-oss](https://github.com/10x-oss)
+See [LICENSE](LICENSE).
