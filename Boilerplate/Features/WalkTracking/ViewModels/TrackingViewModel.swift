@@ -10,7 +10,7 @@ final class TrackingViewModel {
         case paused
     }
 
-    private(set) let locationManager: LocationManager
+    let locationManager: LocationManager
     private let modelContext: ModelContext
 
     var phase: Phase = .idle
@@ -99,6 +99,46 @@ final class TrackingViewModel {
 
         onWalkSaved?()
         return uiWalk
+    }
+
+    /// Captures walk data without persisting — SaveWalkView handles persistence after naming.
+    func finishWalk() -> Walk? {
+        guard phase == .tracking || phase == .paused else { return nil }
+
+        tickTimer?.invalidate()
+        tickTimer = nil
+
+        let duration = elapsedTime
+        let distanceKm = locationManager.distanceTraveled.metersToKm
+        let route: [WalkPointData] = locationManager.locationPoints.map {
+            WalkPointData(
+                latitude: $0.coordinate.latitude,
+                longitude: $0.coordinate.longitude,
+                timestamp: $0.timestamp
+            )
+        }
+        let avgPace = duration > 0 ? distanceKm / (duration / 3600) : 0
+        let calories = distanceKm * WalkingConstants.defaultCalorieBurnRate * 100
+
+        let walk = Walk(
+            id: UUID(),
+            date: Date(),
+            duration: duration,
+            distanceInKm: distanceKm,
+            caloriesBurned: calories,
+            routePoints: route.map {
+                WalkPoint(latitude: $0.latitude, longitude: $0.longitude, timestamp: $0.timestamp)
+            },
+            averagePace: avgPace,
+            maxSpeed: locationManager.maxSpeedMps,
+            notes: nil
+        )
+
+        phase = .idle
+        elapsedTime = 0
+        locationManager.reset()
+
+        return walk
     }
 
     private func startTimer() {

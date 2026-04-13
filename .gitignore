@@ -1,3 +1,6 @@
+# Local upstream clone (used only to compare with GitHub boilerplate)
+.boilerplate-upstream/
+
 # Xcode
 build/
 DerivedData/

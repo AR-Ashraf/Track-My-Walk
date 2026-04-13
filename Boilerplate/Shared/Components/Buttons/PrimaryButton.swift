@@ -67,22 +67,16 @@ struct PrimaryButton: View {
             print("Tapped")
         }
 
-        PrimaryButton(title: "Submit", icon: "paperplane.fill") {
-            print("Tapped")
-        }
+        PrimaryButton(title: "Submit", action: { print("Tapped") }, icon: "paperplane.fill")
 
-        PrimaryButton(title: "Loading", isLoading: true) {
-            print("Tapped")
-        }
+        PrimaryButton(title: "Loading", action: { print("Tapped") }, isLoading: true)
 
         PrimaryButton(title: "Disabled") {
             print("Tapped")
         }
         .disabled(true)
 
-        PrimaryButton(title: "Compact", isFullWidth: false) {
-            print("Tapped")
-        }
+        PrimaryButton(title: "Compact", action: { print("Tapped") }, isFullWidth: false)
     }
     .padding()
 }

@@ -5,6 +5,7 @@ import SwiftData
 final class WalkModel {
     @Attribute(.unique) var id: UUID
     var date: Date
+    var name: String
     var duration: TimeInterval
     var distanceInKm: Double
     var caloriesBurned: Double
@@ -16,6 +17,7 @@ final class WalkModel {
     init(
         id: UUID = UUID(),
         date: Date = Date(),
+        name: String = "Walk",
         duration: TimeInterval,
         distanceInKm: Double,
         caloriesBurned: Double,
@@ -26,6 +28,7 @@ final class WalkModel {
     ) {
         self.id = id
         self.date = date
+        self.name = name
         self.duration = duration
         self.distanceInKm = distanceInKm
         self.caloriesBurned = caloriesBurned

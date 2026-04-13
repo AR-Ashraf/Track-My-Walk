@@ -4,6 +4,7 @@ import SwiftUI
 struct MapViewRepresentable: UIViewRepresentable {
     var coordinates: [CLLocationCoordinate2D]
     var currentLocation: CLLocationCoordinate2D?
+    var isTracking: Bool = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -22,6 +23,13 @@ struct MapViewRepresentable: UIViewRepresentable {
         if coordinates.count >= 2 {
             let poly = MKPolyline(coordinates: coordinates, count: coordinates.count)
             mapView.addOverlay(poly)
+        }
+
+        // Auto-follow: center tightly on latest coordinate while tracking
+        if isTracking, let last = coordinates.last {
+            let region = MKCoordinateRegion(center: last, latitudinalMeters: 200, longitudinalMeters: 200)
+            mapView.setRegion(region, animated: true)
+            return
         }
 
         let padding = WalkingConstants.mapPadding

@@ -127,7 +127,7 @@ struct OnboardingView: View {
 
             Image(systemName: "star.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
 
             Text("Track My Walk")
                 .font(.largeTitle)
