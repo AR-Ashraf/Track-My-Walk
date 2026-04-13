@@ -34,7 +34,11 @@ struct WalkListItem: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            MapViewRepresentable(coordinates: coordinates, currentLocation: nil)
+            MapViewRepresentable(
+                coordinates: coordinates,
+                currentLocation: nil,
+                displayMode: .routePreview
+            )
                 .frame(width: 72, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay(

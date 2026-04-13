@@ -45,8 +45,9 @@ struct SaveWalkView: View {
     private var mapSnapshot: some View {
         MapViewRepresentable(
             coordinates: walk.routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) },
-            currentLocation: walk.routePoints.last.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) },
-            isTracking: false
+            currentLocation: nil,
+            isTracking: false,
+            displayMode: .routePreview
         )
         .frame(height: 220)
         .allowsHitTesting(false)

@@ -145,9 +145,11 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: "star.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(Color.accentColor)
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 120, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
             Text("Track My Walk")
                 .font(.largeTitle)

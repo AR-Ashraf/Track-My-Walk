@@ -15,7 +15,8 @@ struct WalkDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
                 MapViewRepresentable(
                     coordinates: viewModel.walk.routePoints.map(\.coordinate),
-                    currentLocation: nil
+                    currentLocation: nil,
+                    displayMode: .routePreview
                 )
                 .frame(height: 280)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
