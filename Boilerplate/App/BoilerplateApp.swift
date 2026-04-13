@@ -1,6 +1,10 @@
 import SwiftData
 import SwiftUI
 
+#if canImport(GoogleMaps)
+import GoogleMaps
+#endif
+
 @main
 struct BoilerplateApp: App {
     // MARK: - Dependencies
@@ -14,6 +18,7 @@ struct BoilerplateApp: App {
 
     init() {
         authService = AuthService(apiClient: apiClient)
+        configureMaps()
         configureAppearance()
     }
 
@@ -38,6 +43,18 @@ struct BoilerplateApp: App {
         Logger.shared.app("App launched in \(AppEnvironment.current.rawValue) mode")
         #endif
     }
+
+    private func configureMaps() {
+        #if canImport(GoogleMaps)
+        if let apiKey = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String,
+           !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            GMSServices.provideAPIKey(apiKey)
+        } else {
+            Logger.shared.app("Google Maps API key missing (Info.plist key: GMSApiKey)", level: .error)
+        }
+        #endif
+    }
 }
 
 // MARK: - Root View
@@ -45,13 +62,14 @@ struct BoilerplateApp: App {
 struct RootView: View {
     @Environment(Router.self) private var router
     @Environment(AuthService.self) private var authService
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
         @Bindable var router = router
 
         NavigationStack(path: $router.path) {
             Group {
-                if UserDefaultsWrapper.hasCompletedOnboarding {
+                if hasCompletedOnboarding {
                     ContentView()
                 } else {
                     OnboardingView()
@@ -121,6 +139,8 @@ struct HomeView: View {
 // MARK: - Onboarding View (Placeholder)
 
 struct OnboardingView: View {
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -142,7 +162,7 @@ struct OnboardingView: View {
             Spacer()
 
             PrimaryButton(title: "Get Started") {
-                UserDefaultsWrapper.hasCompletedOnboarding = true
+                hasCompletedOnboarding = true
             }
             .padding(.horizontal)
         }

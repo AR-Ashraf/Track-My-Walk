@@ -2,9 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIBackgroundModes</key>
+	<key>GMSApiKey</key>
+	<string>AIzaSyBeQv0oMFQvImq0p4rq7bcqkMLo52NpPxc</string>
+	<key>UTImportedTypeDeclarations</key>
 	<array>
-		<string>location</string>
+		<dict/>
+		<dict/>
 	</array>
 </dict>
 </plist>

@@ -10,43 +10,58 @@ struct DashboardView: View {
     @State private var navigateToSave: Walk?
 
     var body: some View {
-        Group {
-            if let trackingViewModel, let historyViewModel {
-                ZStack(alignment: .bottom) {
-                    MapViewRepresentable(
-                        coordinates: locationManager.locationPoints.map(\.coordinate),
-                        currentLocation: locationManager.currentLocation?.coordinate,
-                        isTracking: trackingViewModel.phase == .tracking
-                    )
-                    .ignoresSafeArea()
-
-                    WorkoutBottomSheet(
-                        locationManager: locationManager,
-                        viewModel: trackingViewModel,
-                        onFinish: { walk in
-                            navigateToSave = walk
-                        }
-                    )
-                }
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        NavigationLink {
-                            HistoryView(viewModel: historyViewModel)
-                        } label: {
-                            Image(systemName: "clock.arrow.circlepath")
-                        }
-                    }
-                }
-                .navigationDestination(item: $navigateToSave) { walk in
-                    SaveWalkView(walk: walk) {
-                        historyViewModel.loadWalks()
-                    }
-                }
+        ZStack(alignment: .bottom) {
+            if let trackingViewModel {
+                MapViewRepresentable(
+                    coordinates: locationManager.locationPoints.map(\.coordinate),
+                    currentLocation: locationManager.currentLocation?.coordinate,
+                    isTracking: trackingViewModel.phase == .tracking
+                )
+            } else {
+                // Placeholder so the view always occupies the screen.
+                Color.black
             }
         }
-        .onAppear {
+        .overlay(alignment: .bottom) {
+            if let trackingViewModel {
+                WorkoutBottomSheet(
+                    locationManager: locationManager,
+                    viewModel: trackingViewModel,
+                    onFinish: { walk in
+                        navigateToSave = walk
+                    }
+                )
+            }
+        }
+        .overlay {
+            if trackingViewModel == nil || historyViewModel == nil {
+                ProgressView()
+                    .padding(16)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if let historyViewModel {
+                NavigationLink {
+                    HistoryView(viewModel: historyViewModel)
+                } label: {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .padding(12)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .padding(.trailing, 16)
+                .safeAreaPadding(.top)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(item: $navigateToSave) { walk in
+            SaveWalkView(walk: walk) {
+                historyViewModel?.loadWalks()
+            }
+        }
+        .task {
             if trackingViewModel == nil {
                 let tracking = TrackingViewModel(locationManager: locationManager, modelContext: modelContext)
                 let history = HistoryViewModel(modelContext: modelContext)
@@ -58,4 +73,3 @@ struct DashboardView: View {
         }
     }
 }
-

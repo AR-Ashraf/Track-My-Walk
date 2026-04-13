@@ -32,9 +32,23 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
             manager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse:
             manager.requestAlwaysAuthorization()
+            requestOneShotLocation()
         default:
+            requestOneShotLocation()
             break
         }
+    }
+
+    func requestOneShotLocation() {
+        guard manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways else {
+            return
+        }
+        // If CoreLocation already has a cached fix, surface it immediately for UI centering.
+        if let cached = manager.location {
+            currentLocation = cached
+        }
+        // Ask CoreLocation for a single fix so the UI can center immediately.
+        manager.requestLocation()
     }
 
     func startTracking() {
@@ -44,7 +58,8 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
         isPaused = false
         startTime = Date()
         manager.startUpdatingLocation()
-        if manager.authorizationStatus == .authorizedAlways {
+        // Enable background updates only when the app declares it supports background location.
+        if shouldAllowBackgroundLocationUpdates, manager.authorizationStatus == .authorizedAlways {
             manager.allowsBackgroundLocationUpdates = true
         }
     }
@@ -59,7 +74,7 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
         guard isTracking, isPaused else { return }
         isPaused = false
         manager.startUpdatingLocation()
-        if manager.authorizationStatus == .authorizedAlways {
+        if shouldAllowBackgroundLocationUpdates, manager.authorizationStatus == .authorizedAlways {
             manager.allowsBackgroundLocationUpdates = true
         }
     }
@@ -113,8 +128,11 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor in
             self.authorizationStatus = self.manager.authorizationStatus
-            if self.isTracking, self.manager.authorizationStatus == .authorizedAlways {
+            if self.isTracking, self.shouldAllowBackgroundLocationUpdates, self.manager.authorizationStatus == .authorizedAlways {
                 self.manager.allowsBackgroundLocationUpdates = true
+            }
+            if !self.isTracking {
+                self.requestOneShotLocation()
             }
         }
     }
@@ -129,5 +147,13 @@ final class LocationManager: NSObject, CLLocationManagerDelegate {
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Logger.shared.app("Location error: \(error.localizedDescription)", level: .error)
+    }
+
+    private var shouldAllowBackgroundLocationUpdates: Bool {
+        // CoreLocation will assert/crash if this is enabled without background mode support.
+        guard let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] else {
+            return false
+        }
+        return modes.contains("location")
     }
 }
