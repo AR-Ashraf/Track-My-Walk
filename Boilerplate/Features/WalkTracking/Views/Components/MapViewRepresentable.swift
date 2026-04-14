@@ -1,8 +1,6 @@
 import CoreLocation
 import SwiftUI
-
-#if canImport(GoogleMaps)
-import GoogleMaps
+import UIKit
 
 enum MapDisplayMode: Sendable {
     /// Live map that can follow the user/current location.
@@ -10,6 +8,15 @@ enum MapDisplayMode: Sendable {
     /// Static map that fits the provided route and does not follow the user.
     case routePreview
 }
+
+private enum RouteMapVisual {
+    static let polylineWidth: CGFloat = 5
+    /// Matches polyline thickness — small endpoint dots, not map pins.
+    static let endpointDotDiameter: CGFloat = polylineWidth
+}
+
+#if canImport(GoogleMaps)
+import GoogleMaps
 
 struct MapViewRepresentable: UIViewRepresentable {
     var coordinates: [CLLocationCoordinate2D]
@@ -44,15 +51,17 @@ struct MapViewRepresentable: UIViewRepresentable {
             }
             let polyline = GMSPolyline(path: path)
             polyline.strokeColor = .systemBlue
-            polyline.strokeWidth = 5
+            polyline.strokeWidth = RouteMapVisual.polylineWidth
             polyline.map = mapView
         }
+
+        addRouteEndpointMarkers(to: mapView)
 
         if displayMode == .routePreview {
             guard !coordinates.isEmpty else { return }
 
             let cameraKey = Self.cameraKey(for: coordinates)
-            guard context.coordinator.lastCameraKey != cameraKey else { return }
+            if context.coordinator.lastCameraKey == cameraKey { return }
             context.coordinator.lastCameraKey = cameraKey
 
             if coordinates.count == 1, let first = coordinates.first {
@@ -78,6 +87,35 @@ struct MapViewRepresentable: UIViewRepresentable {
         }
     }
 
+    private func addRouteEndpointMarkers(to mapView: GMSMapView) {
+        guard let start = coordinates.first else { return }
+        let startMarker = GMSMarker(position: start)
+        startMarker.icon = Self.routeEndpointDot(diameter: RouteMapVisual.endpointDotDiameter, color: .systemGreen)
+        startMarker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
+        startMarker.zIndex = 1
+        startMarker.map = mapView
+
+        if coordinates.count >= 2, let end = coordinates.last {
+            let endMarker = GMSMarker(position: end)
+            endMarker.icon = Self.routeEndpointDot(diameter: RouteMapVisual.endpointDotDiameter, color: .systemRed)
+            endMarker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
+            endMarker.zIndex = 2
+            endMarker.map = mapView
+        }
+    }
+
+    private static func routeEndpointDot(diameter: CGFloat, color: UIColor) -> UIImage {
+        let scale = UIScreen.main.scale
+        let px = diameter * scale
+        let size = CGSize(width: px, height: px)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { ctx in
+            color.setFill()
+            ctx.cgContext.fillEllipse(in: CGRect(origin: .zero, size: size))
+        }
+        return image.withRenderingMode(.alwaysOriginal)
+    }
+
     private static func cameraKey(for coords: [CLLocationCoordinate2D]) -> Int {
         guard let first = coords.first, let last = coords.last else { return 0 }
         func q(_ x: CLLocationDegrees) -> Int { Int((x * 10_000).rounded()) }
@@ -98,6 +136,21 @@ struct MapViewRepresentable: UIViewRepresentable {
 #else
 
 import MapKit
+
+private final class RouteEndpointAnnotation: NSObject, MKAnnotation {
+    enum Kind {
+        case start
+        case end
+    }
+
+    let kind: Kind
+    var coordinate: CLLocationCoordinate2D
+
+    init(kind: Kind, coordinate: CLLocationCoordinate2D) {
+        self.kind = kind
+        self.coordinate = coordinate
+    }
+}
 
 struct MapViewRepresentable: UIViewRepresentable {
     var coordinates: [CLLocationCoordinate2D]
@@ -121,10 +174,19 @@ struct MapViewRepresentable: UIViewRepresentable {
 
     func updateUIView(_ mapView: MKMapView, context: Context) {
         mapView.removeOverlays(mapView.overlays)
+        let endpointAnnotations = mapView.annotations.compactMap { $0 as? RouteEndpointAnnotation }
+        mapView.removeAnnotations(endpointAnnotations)
         mapView.showsUserLocation = (displayMode == .live)
         if coordinates.count >= 2 {
             let poly = MKPolyline(coordinates: coordinates, count: coordinates.count)
             mapView.addOverlay(poly)
+        }
+
+        if let start = coordinates.first {
+            mapView.addAnnotation(RouteEndpointAnnotation(kind: .start, coordinate: start))
+        }
+        if coordinates.count >= 2, let end = coordinates.last {
+            mapView.addAnnotation(RouteEndpointAnnotation(kind: .end, coordinate: end))
         }
 
         if displayMode == .routePreview {
@@ -182,14 +244,40 @@ struct MapViewRepresentable: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            if annotation is MKUserLocation { return nil }
+            guard let endpoint = annotation as? RouteEndpointAnnotation else { return nil }
+            let id = endpoint.kind == .start ? "routeStart" : "routeEnd"
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+            view.annotation = annotation
+            let color: UIColor = endpoint.kind == .start ? .systemGreen : .systemRed
+            view.image = Self.routeEndpointDot(diameter: RouteMapVisual.endpointDotDiameter, color: color)
+            view.centerOffset = .zero
+            view.canShowCallout = false
+            return view
+        }
+
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             guard let polyline = overlay as? MKPolyline else {
                 return MKOverlayRenderer(overlay: overlay)
             }
             let renderer = MKPolylineRenderer(polyline: polyline)
             renderer.strokeColor = .systemBlue
-            renderer.lineWidth = 5
+            renderer.lineWidth = RouteMapVisual.polylineWidth
             return renderer
+        }
+
+        private static func routeEndpointDot(diameter: CGFloat, color: UIColor) -> UIImage {
+            let scale = UIScreen.main.scale
+            let px = diameter * scale
+            let size = CGSize(width: px, height: px)
+            let renderer = UIGraphicsImageRenderer(size: size)
+            let image = renderer.image { ctx in
+                color.setFill()
+                ctx.cgContext.fillEllipse(in: CGRect(origin: .zero, size: size))
+            }
+            return image.withRenderingMode(.alwaysOriginal)
         }
     }
 }
