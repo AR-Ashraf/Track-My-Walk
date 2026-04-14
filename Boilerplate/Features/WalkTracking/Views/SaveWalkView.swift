@@ -12,6 +12,8 @@ struct SaveWalkView: View {
     @State private var name: String = ""
     @FocusState private var nameFieldFocused: Bool
 
+    @State private var weatherSnapshot: WalkWeatherSnapshot?
+
     private var liveDistanceKm: Double { walk.distanceInKm }
     private var livePaceKmh: Double { walk.averagePace }
     private var liveCalories: Double { walk.caloriesBurned }
@@ -38,6 +40,9 @@ struct SaveWalkView: View {
         .navigationTitle("Save Workout")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { nameFieldFocused = true }
+        .task {
+            await loadWeatherIfNeeded()
+        }
     }
 
     // MARK: - Map Snapshot
@@ -109,24 +114,58 @@ struct SaveWalkView: View {
     // MARK: - Actions
 
     private func saveWalk() {
-        let resolvedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let model = WalkModel(
-            name: resolvedName.isEmpty ? "Walk" : resolvedName,
-            duration: walk.duration,
-            distanceInKm: walk.distanceInKm,
-            caloriesBurned: walk.caloriesBurned,
-            routePoints: walk.routePoints.map {
-                WalkPointData(latitude: $0.latitude, longitude: $0.longitude, timestamp: $0.timestamp)
-            },
-            averagePace: walk.averagePace,
-            maxSpeed: walk.maxSpeed,
-            notes: walk.notes
-        )
-        modelContext.insert(model)
-        modelContext.saveIfNeeded()
-        HapticService.shared.success()
-        onSaved()
-        dismiss()
+        Task { @MainActor in
+            let resolvedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let coord = routeCoordinateForWeather
+            let snap: WalkWeatherSnapshot
+            if let cached = weatherSnapshot {
+                snap = cached
+            } else {
+                snap = await WalkWeatherService.fetchSnapshot(at: coord, date: walk.date)
+            }
+
+            let model = WalkModel(
+                name: resolvedName.isEmpty ? "Walk" : resolvedName,
+                duration: walk.duration,
+                distanceInKm: walk.distanceInKm,
+                caloriesBurned: walk.caloriesBurned,
+                routePoints: walk.routePoints.map {
+                    WalkPointData(latitude: $0.latitude, longitude: $0.longitude, timestamp: $0.timestamp)
+                },
+                averagePace: walk.averagePace,
+                maxSpeed: walk.maxSpeed,
+                notes: walk.notes,
+                stepCount: walk.stepCount,
+                averageCadenceSpm: walk.averageCadenceSpm,
+                weatherCaptured: true,
+                weatherConditionKind: snap.conditionKind,
+                weatherDisplayName: snap.displayName,
+                temperatureCelsius: snap.temperatureCelsius,
+                humidityPercent: snap.humidityPercent,
+                windMph: snap.windMph
+            )
+            modelContext.insert(model)
+            modelContext.saveIfNeeded()
+            HapticService.shared.success()
+            onSaved()
+            dismiss()
+        }
+    }
+
+    private var routeCoordinateForWeather: CLLocationCoordinate2D {
+        if let last = walk.routePoints.last {
+            return CLLocationCoordinate2D(latitude: last.latitude, longitude: last.longitude)
+        }
+        return CLLocationCoordinate2D(latitude: 0, longitude: 0)
+    }
+
+    private func loadWeatherIfNeeded() async {
+        guard !walk.routePoints.isEmpty else {
+            weatherSnapshot = nil
+            return
+        }
+        let coord = routeCoordinateForWeather
+        weatherSnapshot = await WalkWeatherService.fetchSnapshot(at: coord, date: walk.date)
     }
 
     // MARK: - Helpers

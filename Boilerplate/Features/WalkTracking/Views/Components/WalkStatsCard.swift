@@ -19,7 +19,7 @@ struct WalkStatsCard: View {
                 .font(.title2.monospacedDigit())
                 .foregroundStyle(.secondary)
 
-            Text(paceKmh.formatPace())
+            Text(paceKmh.formatSpeed())
                 .font(.title3.weight(.medium))
                 .foregroundStyle(.blue)
 

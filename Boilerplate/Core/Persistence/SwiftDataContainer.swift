@@ -40,10 +40,34 @@ enum SwiftDataContainer {
         do {
             return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
-            // This is a critical error - the app cannot function without persistence
-            fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
+            // Migration can fail if an older store predates schema changes (e.g. non-optional attributes).
+            // Remove the local store once and retry so the app can launch; user may lose local-only data.
+            Logger.shared.data(
+                "SwiftData store failed to open (\(error.localizedDescription)). Resetting local store.",
+                level: .error
+            )
+            Self.removeLocalSwiftDataStoreFiles()
+            do {
+                return try ModelContainer(for: schema, configurations: [configuration])
+            } catch {
+                fatalError("Failed to create ModelContainer after reset: \(error.localizedDescription)")
+            }
         }
     }()
+
+    /// Deletes the default on-disk SwiftData SQLite files (and sidecars) in Application Support.
+    private static func removeLocalSwiftDataStoreFiles() {
+        let fm = FileManager.default
+        guard let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return
+        }
+        guard let contents = try? fm.contentsOfDirectory(at: appSupport, includingPropertiesForKeys: nil) else {
+            return
+        }
+        for url in contents where url.lastPathComponent.hasPrefix("default.store") {
+            try? fm.removeItem(at: url)
+        }
+    }
 
     // MARK: - Preview Container
 

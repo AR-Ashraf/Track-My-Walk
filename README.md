@@ -41,8 +41,18 @@ Walks are stored locally in SwiftData:
   - `id`, `date`, `name`
   - `duration`, `distanceInKm`, `averagePace`, `maxSpeed`, `caloriesBurned`
   - `routePointsData` (route points stored as JSON-encoded `Data`)
+  - Optional fields for steps, cadence, and weather (safe for lightweight migration from older app versions)
 
 No network calls are required for the tracking feature set.
+
+### Backups, iCloud, and reinstalling
+
+- **Deleting the app** from the Home Screen removes the app’s sandbox, including the SwiftData database. **Local-only data does not survive uninstall** unless you use another mechanism below.
+- **iCloud / CloudKit**: The project can use SwiftData with `cloudKitDatabase: .automatic` in release builds so walks can sync to the user’s iCloud account and **reappear after reinstall** on the same Apple ID (requires enabling CloudKit capability and the iCloud container in the developer portal).
+- **Device backup**: iTunes/Finder backups and **iCloud Backup** can restore app data when you **restore the entire device** from a backup; that is different from deleting the app and reinstalling from the App Store without a restore.
+- **Export**: For a manual archive, you could add features later (e.g. export GPX/JSON to Files) — not built into the default flow.
+
+If the app fails to migrate an old database after a schema change, the container **resets the local store once** on launch so the app stays usable (see `SwiftDataContainer.swift`); that may drop local data only in that recovery path.
 
 ## Project layout (relevant parts)
 

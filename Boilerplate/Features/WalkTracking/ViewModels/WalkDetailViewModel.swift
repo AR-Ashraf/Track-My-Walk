@@ -32,13 +32,37 @@ final class WalkDetailViewModel {
     }
 
     func shareWalk() -> String {
-        """
+        let pace = walk.averagePaceMinPerKm.formatPaceMinutesPerKm()
+        let speed = statistics.averageSpeedKmh.formatSpeed()
+        var lines = """
         \(walk.name) — \(walk.date.formatted(date: .abbreviated, time: .shortened))
         Distance: \(walk.distanceInKm.formatDistance())
         Duration: \(walk.duration.formattedTime)
-        Avg pace: \(walk.averagePace.formatPace())
+        Avg pace: \(pace)
+        Avg speed: \(speed)
         Calories: \(walk.caloriesBurned.formatCalories())
+        Steps: \(walk.displayStepCount)
+        Avg cadence: \(String(format: "%.0f spm", walk.displayCadenceSpm))
         """
+        if walk.weatherCaptured, let w = walk.weather {
+            lines += "\nWeather: \(w.displayName)"
+            lines += "\nTemp: \(Int(w.temperatureCelsius.rounded()))°C · Humidity: \(Int(w.humidityPercent.rounded()))% · Wind: \(String(format: "%.1f", w.windMph)) mph"
+        }
+        return lines
+    }
+
+    func updateMetadata(name: String, date: Date) throws {
+        let walkId = walk.id
+        let descriptor = FetchDescriptor<WalkModel>(
+            predicate: #Predicate { $0.id == walkId }
+        )
+        guard let model = try modelContext.fetch(descriptor).first else {
+            throw WalkDetailError.notFound
+        }
+        model.name = name
+        model.date = date
+        modelContext.saveIfNeeded()
+        walk = model.toWalk()
     }
 
     func deleteWalk() throws {

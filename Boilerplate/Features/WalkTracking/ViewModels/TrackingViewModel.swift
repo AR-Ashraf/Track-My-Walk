@@ -77,6 +77,8 @@ final class TrackingViewModel {
         }
         let avgPace = duration > 0 ? distanceKm / (duration / 3600) : 0
         let calories = distanceKm * WalkingConstants.defaultCalorieBurnRate * 100
+        let steps = WalkingMetrics.estimatedStepCount(distanceKm: distanceKm)
+        let cadence = WalkingMetrics.averageCadenceSpm(stepCount: steps, duration: duration)
 
         let model = WalkModel(
             duration: duration,
@@ -85,7 +87,10 @@ final class TrackingViewModel {
             routePoints: route,
             averagePace: avgPace,
             maxSpeed: locationManager.maxSpeedMps,
-            notes: notes
+            notes: notes,
+            stepCount: steps,
+            averageCadenceSpm: cadence,
+            weatherCaptured: false
         )
 
         modelContext.insert(model)
@@ -119,6 +124,8 @@ final class TrackingViewModel {
         }
         let avgPace = duration > 0 ? distanceKm / (duration / 3600) : 0
         let calories = distanceKm * WalkingConstants.defaultCalorieBurnRate * 100
+        let steps = WalkingMetrics.estimatedStepCount(distanceKm: distanceKm)
+        let cadence = WalkingMetrics.averageCadenceSpm(stepCount: steps, duration: duration)
 
         let walk = Walk(
             id: UUID(),
@@ -132,7 +139,11 @@ final class TrackingViewModel {
             },
             averagePace: avgPace,
             maxSpeed: locationManager.maxSpeedMps,
-            notes: nil
+            notes: nil,
+            stepCount: steps,
+            averageCadenceSpm: cadence,
+            weatherCaptured: false,
+            weather: nil
         )
 
         phase = .idle

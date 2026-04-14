@@ -14,6 +14,18 @@ final class WalkModel {
     var maxSpeed: Double
     var notes: String?
 
+    // Optional so lightweight migration from older stores does not require back-filled values per row.
+    var stepCount: Int?
+    var averageCadenceSpm: Double?
+
+    /// When true, `weather*` fields were captured at save time; otherwise show a legacy / unavailable state in UI.
+    var weatherCaptured: Bool?
+    var weatherConditionKind: String?
+    var weatherDisplayName: String?
+    var temperatureCelsius: Double?
+    var humidityPercent: Double?
+    var windMph: Double?
+
     init(
         id: UUID = UUID(),
         date: Date = Date(),
@@ -24,7 +36,15 @@ final class WalkModel {
         routePoints: [WalkPointData],
         averagePace: Double,
         maxSpeed: Double,
-        notes: String? = nil
+        notes: String? = nil,
+        stepCount: Int? = nil,
+        averageCadenceSpm: Double? = nil,
+        weatherCaptured: Bool? = nil,
+        weatherConditionKind: String? = nil,
+        weatherDisplayName: String? = nil,
+        temperatureCelsius: Double? = nil,
+        humidityPercent: Double? = nil,
+        windMph: Double? = nil
     ) {
         self.id = id
         self.date = date
@@ -36,6 +56,14 @@ final class WalkModel {
         self.averagePace = averagePace
         self.maxSpeed = maxSpeed
         self.notes = notes
+        self.stepCount = stepCount
+        self.averageCadenceSpm = averageCadenceSpm
+        self.weatherCaptured = weatherCaptured
+        self.weatherConditionKind = weatherConditionKind
+        self.weatherDisplayName = weatherDisplayName
+        self.temperatureCelsius = temperatureCelsius
+        self.humidityPercent = humidityPercent
+        self.windMph = windMph
     }
 
     func decodedRoutePoints() -> [WalkPointData] {

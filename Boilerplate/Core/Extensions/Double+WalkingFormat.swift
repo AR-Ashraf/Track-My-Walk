@@ -7,8 +7,18 @@ extension Double {
         String(format: "%.2f %@", self, unit)
     }
 
-    func formatPace(unit: String = "km/h") -> String {
+    /// Speed formatting (e.g. km/h).
+    func formatSpeed(unit: String = "km/h") -> String {
         String(format: "%.2f %@", self, unit)
+    }
+
+    /// Pace formatting where `self` is minutes per kilometer.
+    func formatPaceMinutesPerKm() -> String {
+        guard self.isFinite, self > 0 else { return "—" }
+        let totalSeconds = Int((self * 60).rounded())
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d min/km", minutes, seconds)
     }
 
     func formatCalories() -> String {

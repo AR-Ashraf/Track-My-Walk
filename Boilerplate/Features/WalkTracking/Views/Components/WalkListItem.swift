@@ -28,7 +28,7 @@ struct WalkListItem: View {
                 Text(walk.duration.formattedTime)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text(walk.averagePace.formatPace())
+                Text(walk.averagePace.formatSpeed())
                     .font(.caption)
                     .foregroundStyle(.blue)
             }
