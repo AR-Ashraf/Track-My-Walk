@@ -7,9 +7,13 @@ final class HistoryViewModel {
     private(set) var walks: [WalkModel] = []
 
     private let modelContext: ModelContext
+    private let auth: FirebaseAuthService
+    private let cloudSync: WalkCloudSyncService
 
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, auth: FirebaseAuthService, cloudSync: WalkCloudSyncService) {
         self.modelContext = modelContext
+        self.auth = auth
+        self.cloudSync = cloudSync
     }
 
     var sortedWalks: [WalkModel] {
@@ -45,19 +49,29 @@ final class HistoryViewModel {
     }
 
     func deleteWalk(_ walk: WalkModel) {
+        let id = walk.id
         modelContext.delete(walk)
         modelContext.saveIfNeeded()
         loadWalks()
         HapticService.shared.itemDeleted()
+        if let uid = auth.userId {
+            Task { try? await cloudSync.deleteWalk(id: id, uid: uid) }
+        }
     }
 
     func deleteWalk(atOffsets offsets: IndexSet, in models: [WalkModel]) {
+        let ids = offsets.map { models[$0].id }
         for index in offsets {
             modelContext.delete(models[index])
         }
         modelContext.saveIfNeeded()
         loadWalks()
         HapticService.shared.itemDeleted()
+        if let uid = auth.userId {
+            for id in ids {
+                Task { try? await cloudSync.deleteWalk(id: id, uid: uid) }
+            }
+        }
     }
 
     func getWalk(id: UUID) -> WalkModel? {

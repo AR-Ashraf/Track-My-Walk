@@ -1,6 +1,10 @@
 import SwiftData
 import SwiftUI
 
+#if canImport(FirebaseCore)
+import FirebaseCore
+#endif
+
 #if canImport(GoogleMaps)
 import GoogleMaps
 #endif
@@ -12,12 +16,17 @@ struct BoilerplateApp: App {
     private let router = Router.shared
     private let apiClient = APIClient()
     private let authService: AuthService
+    private let firebaseAuthService: FirebaseAuthService
+    private let walkCloudSyncService: WalkCloudSyncService
     private let analyticsService = AnalyticsService()
 
     // MARK: - Initialization
 
     init() {
+        Self.configureFirebase()
         authService = AuthService(apiClient: apiClient)
+        firebaseAuthService = FirebaseAuthService()
+        walkCloudSyncService = WalkCloudSyncService()
         configureMaps()
         configureAppearance()
     }
@@ -30,6 +39,8 @@ struct BoilerplateApp: App {
                 .environment(router)
                 .environment(apiClient)
                 .environment(authService)
+                .environment(firebaseAuthService)
+                .environment(walkCloudSyncService)
                 .environment(analyticsService)
         }
         .modelContainer(SwiftDataContainer.shared)
@@ -55,24 +66,34 @@ struct BoilerplateApp: App {
         }
         #endif
     }
+
+    private static func configureFirebase() {
+        #if canImport(FirebaseCore)
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+        }
+        #endif
+    }
 }
 
 // MARK: - Root View
 
 struct RootView: View {
     @Environment(Router.self) private var router
-    @Environment(AuthService.self) private var authService
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(FirebaseAuthService.self) private var firebaseAuth
+    @Environment(WalkCloudSyncService.self) private var cloudSync
+    @Environment(\.modelContext) private var modelContext
+    @State private var hasAttemptedRestore = false
 
     var body: some View {
         @Bindable var router = router
 
         NavigationStack(path: $router.path) {
             Group {
-                if hasCompletedOnboarding {
+                if firebaseAuth.isAuthenticated {
                     ContentView()
                 } else {
-                    OnboardingView()
+                    SignInView()
                 }
             }
             .navigationDestination(for: Route.self) { route in
@@ -81,6 +102,13 @@ struct RootView: View {
         }
         .sheet(item: $router.presentedSheet) { sheet in
             sheetView(for: sheet)
+        }
+        .task(id: firebaseAuth.userId) {
+            // Local-first: only restore from Firestore when local store has zero walks.
+            guard let uid = firebaseAuth.userId else { return }
+            guard !hasAttemptedRestore else { return }
+            hasAttemptedRestore = true
+            _ = try? await cloudSync.importIfLocalEmpty(uid: uid, modelContext: modelContext)
         }
     }
 
@@ -133,42 +161,6 @@ struct HomeView: View {
             }
         }
         .navigationTitle("Home")
-    }
-}
-
-// MARK: - Onboarding View (Placeholder)
-
-struct OnboardingView: View {
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Image("AppLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 120, height: 120)
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-
-            Text("Track My Walk")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-
-            Text("Record routes, distance, and pace — stored only on your device.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-
-            Spacer()
-
-            PrimaryButton(title: "Get Started") {
-                hasCompletedOnboarding = true
-            }
-            .padding(.horizontal)
-        }
-        .padding()
     }
 }
 

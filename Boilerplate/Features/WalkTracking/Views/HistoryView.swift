@@ -5,6 +5,9 @@ struct HistoryView: View {
     @Bindable var viewModel: HistoryViewModel
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(FirebaseAuthService.self) private var auth
+    @Environment(WalkCloudSyncService.self) private var cloudSync
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
@@ -19,7 +22,12 @@ struct HistoryView: View {
                     ForEach(viewModel.sortedWalks, id: \.id) { walk in
                         NavigationLink {
                             WalkDetailView(
-                                viewModel: WalkDetailViewModel(walk: walk.toWalk(), modelContext: modelContext)
+                                viewModel: WalkDetailViewModel(
+                                    walk: walk.toWalk(),
+                                    modelContext: modelContext,
+                                    auth: auth,
+                                    cloudSync: cloudSync
+                                )
                             )
                         } label: {
                             WalkListItem(walk: walk)
@@ -33,6 +41,14 @@ struct HistoryView: View {
             }
         }
         .navigationTitle("History")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Logout") {
+                    auth.signOut()
+                    dismiss()
+                }
+            }
+        }
         .refreshable {
             await viewModel.refresh()
         }

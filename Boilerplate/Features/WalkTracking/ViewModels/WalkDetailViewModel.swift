@@ -21,12 +21,16 @@ final class WalkDetailViewModel {
     let statistics: WalkStatistics
 
     private let modelContext: ModelContext
+    private let auth: FirebaseAuthService
+    private let cloudSync: WalkCloudSyncService
 
     var onDeleted: (() -> Void)?
 
-    init(walk: Walk, modelContext: ModelContext) {
+    init(walk: Walk, modelContext: ModelContext, auth: FirebaseAuthService, cloudSync: WalkCloudSyncService) {
         self.walk = walk
         self.modelContext = modelContext
+        self.auth = auth
+        self.cloudSync = cloudSync
         statistics = WalkStatistics(walk: walk)
         mapRegion = Self.region(for: walk)
     }
@@ -62,6 +66,9 @@ final class WalkDetailViewModel {
         model.name = name
         model.date = date
         modelContext.saveIfNeeded()
+        if let uid = auth.userId {
+            Task { try? await cloudSync.uploadWalk(model: model, uid: uid) }
+        }
         walk = model.toWalk()
     }
 
@@ -75,6 +82,9 @@ final class WalkDetailViewModel {
         }
         modelContext.delete(model)
         modelContext.saveIfNeeded()
+        if let uid = auth.userId {
+            Task { try? await cloudSync.deleteWalk(id: walkId, uid: uid) }
+        }
         onDeleted?()
     }
 

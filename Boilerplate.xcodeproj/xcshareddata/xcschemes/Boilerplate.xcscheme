@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "64315EB961DDBC3BAFE2A9C8"
-               BuildableName = "Boilerplate.app"
+               BuildableName = "Track My Walk.app"
                BlueprintName = "Boilerplate"
                ReferencedContainer = "container:Boilerplate.xcodeproj">
             </BuildableReference>
@@ -58,7 +58,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "64315EB961DDBC3BAFE2A9C8"
-            BuildableName = "Boilerplate.app"
+            BuildableName = "Track My Walk.app"
             BlueprintName = "Boilerplate"
             ReferencedContainer = "container:Boilerplate.xcodeproj">
          </BuildableReference>
@@ -87,7 +87,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "64315EB961DDBC3BAFE2A9C8"
-            BuildableName = "Boilerplate.app"
+            BuildableName = "Track My Walk.app"
             BlueprintName = "Boilerplate"
             ReferencedContainer = "container:Boilerplate.xcodeproj">
          </BuildableReference>

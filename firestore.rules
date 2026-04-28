@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /walks/{walkId} {
+        allow read, list: if isOwner(uid);
+
+        // Allow create/update only for the owner. Keep validation lightweight but safe.
+        allow create, update: if isOwner(uid)
+          && request.resource.data.id is string
+          && request.resource.data.name is string
+          && request.resource.data.date is timestamp
+          && request.resource.data.duration is number
+          && request.resource.data.distanceInKm is number
+          && request.resource.data.caloriesBurned is number
+          && request.resource.data.averagePace is number
+          && request.resource.data.maxSpeed is number
+          && request.resource.data.routePoints is list;
+
+        allow delete: if isOwner(uid);
+      }
+    }
+  }
+}
+

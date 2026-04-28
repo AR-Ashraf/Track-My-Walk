@@ -4,6 +4,8 @@ import SwiftUI
 /// Root tab experience: track walks, history, and settings.
 struct WalkMainTabView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(FirebaseAuthService.self) private var auth
+    @Environment(WalkCloudSyncService.self) private var cloudSync
 
     @State private var locationManager = LocationManager()
     @State private var trackingViewModel: TrackingViewModel?
@@ -42,7 +44,7 @@ struct WalkMainTabView: View {
         .onAppear {
             if trackingViewModel == nil {
                 let tracking = TrackingViewModel(locationManager: locationManager, modelContext: modelContext)
-                let history = HistoryViewModel(modelContext: modelContext)
+                let history = HistoryViewModel(modelContext: modelContext, auth: auth, cloudSync: cloudSync)
                 tracking.onWalkSaved = {
                     history.loadWalks()
                 }

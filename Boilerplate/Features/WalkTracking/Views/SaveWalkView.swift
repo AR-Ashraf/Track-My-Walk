@@ -8,6 +8,8 @@ struct SaveWalkView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(FirebaseAuthService.self) private var firebaseAuth
+    @Environment(WalkCloudSyncService.self) private var cloudSync
 
     @State private var name: String = ""
     @FocusState private var nameFieldFocused: Bool
@@ -146,6 +148,13 @@ struct SaveWalkView: View {
             )
             modelContext.insert(model)
             modelContext.saveIfNeeded()
+
+            if let uid = firebaseAuth.userId {
+                Task {
+                    try? await cloudSync.uploadWalk(model: model, uid: uid)
+                }
+            }
+
             HapticService.shared.success()
             onSaved()
             dismiss()

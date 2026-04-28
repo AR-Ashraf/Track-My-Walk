@@ -3,6 +3,8 @@ import SwiftUI
 
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(FirebaseAuthService.self) private var auth
+    @Environment(WalkCloudSyncService.self) private var cloudSync
 
     @State private var locationManager = LocationManager()
     @State private var trackingViewModel: TrackingViewModel?
@@ -66,7 +68,7 @@ struct DashboardView: View {
         .task {
             if trackingViewModel == nil {
                 let tracking = TrackingViewModel(locationManager: locationManager, modelContext: modelContext)
-                let history = HistoryViewModel(modelContext: modelContext)
+                let history = HistoryViewModel(modelContext: modelContext, auth: auth, cloudSync: cloudSync)
                 trackingViewModel = tracking
                 historyViewModel = history
                 history.loadWalks()
